@@ -99,7 +99,7 @@ void BT::App::Run()
 	// Run camera threads
 	Cam1Tread = thread([&]
 	{
-		Camera1 = new BT::Camera(1);
+		Camera1 = new BT::Camera(1, 8888);
 		Camera1->Run();
 	});
 

@@ -8,15 +8,18 @@
 #include <iomanip>
 
 #include "App.h"
+#include "UdpServer.h"
 
 using namespace std;
 
 extern mutex MainMutex;
 
-BT::Camera::Camera(int CamId)
+BT::Camera::Camera(int CamId, unsigned int CameraPort)
 	: CamId(CamId)
+	, CameraPort(CameraPort)
 	, k_fmt7Mode(MODE_0)
 	, k_fmt7PixFmt(PIXEL_FORMAT_RGB8)
+	, BytesPerColor(4)
 {
 	app = BT::App::GetApp();
 
@@ -105,11 +108,28 @@ BT::Camera::Camera(int CamId)
 		PrintError(error);
 		app->ErrorExit(-1);
 	}
+
+
+
+	// Run udp server threads
+	UdpServerTread = thread([&]
+	{
+		// Init Udp server
+		udpServer = new UdpServer(CameraPort, fmt7Info.maxWidth * fmt7Info.maxHeight * BytesPerColor);
+		udpServer->Broadcast();
+	});
 }
 
 BT::Camera::~Camera()
 {
 	End();
+
+	// release tread
+	UdpServerTread.join();
+
+	// release udp data
+	delete udpServer;
+	udpServer = nullptr;
 }
 
 int BT::Camera::Run()
@@ -210,7 +230,10 @@ int BT::Camera::Tick(double Delta)
 		<< "BT::Camera::Tick " << "Id: " << CamId << " Delta:" << Delta
 		<< " convertedImage DataSize in bytes: " << convertedImage.GetDataSize()
 		<< " Data[100] example: 0x" << std::hex << (int)DataExample;
-	BT::Print(Log.str().c_str());
+	//BT::Print(Log.str().c_str());
+
+	// Send image throuth udp package
+	udpServer->SetSendBuffer((char*)convertedImage.GetData(), convertedImage.GetDataSize());
 
 	return 0;
 }

@@ -32,6 +32,7 @@ namespace BT
 		inline static App* GetApp() { return GlobalApp; };
 
 		inline Error GetError() { return error; }
+		void ErrorExit(int Code);
 
 	private:
 		Error error;
@@ -40,8 +41,6 @@ namespace BT
 		unsigned int numCameras;
 
 		bool bIsDebug;
-
-		void ErrorExit(int Code);
 
 		void Release();
 

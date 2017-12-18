@@ -2,14 +2,19 @@
 
 #include "FlyCapture2.h"
 
+#include <mutex>
+#include <thread>
+#include <chrono>
+
 namespace BT
 {
 	class App;
+	class UdpServer;
 
 	class Camera
 	{
 	public:
-		Camera(int CamId);
+		Camera(int CamId, unsigned int CameraPort);
 		virtual ~Camera();
 
 	public:
@@ -28,7 +33,8 @@ namespace BT
 
 		bool bIsFormatSupported;
 		bool bIsFormatSettingsValid;
-
+		unsigned int CameraPort;
+		unsigned int BytesPerColor;
 
 		// access to the app
 		App* app;
@@ -53,5 +59,10 @@ namespace BT
 
 		virtual int Tick(double Delta);
 
+	// UDP server communication
+	protected:
+		UdpServer* udpServer;
+
+		std::thread UdpServerTread;
 	};
 }
