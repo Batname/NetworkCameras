@@ -99,7 +99,7 @@ void BT::App::Run()
 	// Run camera threads
 	Cam1Tread = thread([&]
 	{
-		Camera1 = new BT::Camera(1, 8888);
+		Camera1 = new BT::Camera(1, 8889);
 		Camera1->Run();
 	});
 
@@ -121,11 +121,11 @@ void BT::App::ErrorExit(int Code)
 
 void BT::App::Release()
 {
-	// Exit threads
-	Cam1Tread.join();
-	Cam2Tread.join();
-
 	// Clear memory
 	delete Camera1;
 	delete Camera2;
+
+	// Exit threads
+	Cam1Tread.join();
+	Cam2Tread.join();
 }

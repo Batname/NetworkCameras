@@ -8,7 +8,7 @@
 #include <iomanip>
 
 #include "App.h"
-#include "UdpServer.h"
+#include "TCPSender.h"
 
 using namespace std;
 
@@ -110,26 +110,17 @@ BT::Camera::Camera(int CamId, unsigned int CameraPort)
 	}
 
 
-
-	// Run udp server threads
-	UdpServerTread = thread([&]
-	{
-		// Init Udp server
-		udpServer = new UdpServer(CameraPort, fmt7Info.maxWidth * fmt7Info.maxHeight * BytesPerColor);
-		udpServer->Broadcast();
-	});
+	// Init Udp server
+	tcpSender = new TCPSender("127.0.0.1", "8889");
 }
 
 BT::Camera::~Camera()
 {
 	End();
 
-	// release tread
-	UdpServerTread.join();
-
 	// release udp data
-	delete udpServer;
-	udpServer = nullptr;
+	delete tcpSender;
+	tcpSender = nullptr;
 }
 
 int BT::Camera::Run()
@@ -233,7 +224,10 @@ int BT::Camera::Tick(double Delta)
 	//BT::Print(Log.str().c_str());
 
 	// Send image throuth udp package
-	udpServer->SetSendBuffer((char*)convertedImage.GetData(), convertedImage.GetDataSize());
+	if (tcpSender != nullptr)
+	{
+		tcpSender->Broadcast((char*)convertedImage.GetData(), convertedImage.GetDataSize());
+	}
 
 	return 0;
 }

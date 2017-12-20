@@ -24,7 +24,7 @@
     <ClCompile Include="App.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UdpServer.cpp">
+    <ClCompile Include="TCPSender.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -35,7 +35,7 @@
     <ClInclude Include="App.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UdpServer.h">
+    <ClInclude Include="TCPSender.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

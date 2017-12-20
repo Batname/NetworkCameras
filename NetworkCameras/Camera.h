@@ -9,7 +9,7 @@
 namespace BT
 {
 	class App;
-	class UdpServer;
+	class TCPSender;
 
 	class Camera
 	{
@@ -28,7 +28,6 @@ namespace BT
 		FlyCapture2::Format7Info fmt7Info;
 		FlyCapture2::Format7ImageSettings fmt7ImageSettings;
 		FlyCapture2::Format7PacketInfo fmt7PacketInfo;
-
 
 
 		bool bIsFormatSupported;
@@ -61,8 +60,8 @@ namespace BT
 
 	// UDP server communication
 	protected:
-		UdpServer* udpServer;
+		TCPSender* tcpSender;
 
-		std::thread UdpServerTread;
+		std::mutex mtx;
 	};
 }
