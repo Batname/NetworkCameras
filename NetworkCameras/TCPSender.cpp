@@ -15,10 +15,93 @@
 BT::TCPSender::TCPSender(std::string Server, std::string Port)
 	: Server(Server)
 	, Port(Port)
+	, bIsConnected(false)
 {
 	// access to app
 	app = BT::App::GetApp();
 
+	Run();
+}
+
+
+void BT::TCPSender::Run()
+{
+	Connect();
+
+	while (1)
+	{
+		if (ConnectSocket == INVALID_SOCKET) {
+			{
+				std::ostringstream SockError;
+				SockError << "Unable to connect to server! " << WSAGetLastError();
+				BT::Print(SockError.str().c_str());
+			}
+
+			// if there is no connection wait 1 sec and try reconnect
+			BT::Print("Reconnect in 1 sec");
+
+			// release socket
+			closesocket(ConnectSocket);
+			WSACleanup();
+
+			Sleep(1000);
+			Connect();
+		}
+		else
+		{
+			// Now we connected
+			bIsConnected = true;
+			break;
+		}
+	}
+
+
+	BT::Print("Socket created");
+}
+
+BT::TCPSender::~TCPSender()
+{
+	// release socket
+	ReleaseSocket();
+}
+
+void BT::TCPSender::Broadcast(const char * Data, unsigned int Len)
+{
+	if (!bIsConnected)
+	{
+		return;
+	}
+
+	iResult = send(ConnectSocket, Data, Len, 0);
+	if (iResult == SOCKET_ERROR) {
+		{
+			std::ostringstream SockError;
+			SockError << "send failed with error: " << WSAGetLastError();
+			BT::Print(SockError.str().c_str());
+		}
+
+		{
+			// Try reconnect now
+			BT::Print("Try reconnect now");
+
+			// reconnect now
+			ReleaseSocket();
+			Sleep(1000);
+			Run();
+		}
+	}
+	else
+	{
+		{
+			std::ostringstream Log;
+			Log << "convertedImage.GetDataSize: " << Len << " Data[100]: " << (int)Data[100];
+			BT::Print(Log.str().c_str());
+		}
+	}
+}
+
+void BT::TCPSender::Connect()
+{
 
 	//Initialise winsock
 	BT::Print("Initialising Winsock...");
@@ -53,7 +136,6 @@ BT::TCPSender::TCPSender(std::string Server, std::string Port)
 		app->ErrorExit(EXIT_FAILURE);
 	}
 
-
 	// Attempt to connect to an address until one succeeds
 	for (ptr = result; ptr != NULL; ptr = ptr->ai_next) {
 
@@ -81,35 +163,11 @@ BT::TCPSender::TCPSender(std::string Server, std::string Port)
 	}
 
 	freeaddrinfo(result);
-
-	if (ConnectSocket == INVALID_SOCKET) {
-		{
-			std::ostringstream SockError;
-			SockError << "Unable to connect to server! " << WSAGetLastError();
-			BT::Print(SockError.str().c_str());
-		}
-		app->ErrorExit(EXIT_FAILURE);
-	}
-
-	BT::Print("Socket created");
 }
 
-
-BT::TCPSender::~TCPSender()
+void BT::TCPSender::ReleaseSocket()
 {
-	// release socket
+	bIsConnected = false;
 	closesocket(ConnectSocket);
 	WSACleanup();
-}
-
-void BT::TCPSender::Broadcast(const char * Data, unsigned int Len)
-{
-	iResult = send(ConnectSocket, Data, Len, 0);
-	if (iResult == SOCKET_ERROR) {
-		{
-			std::ostringstream SockError;
-			SockError << "send failed with error: " << WSAGetLastError();
-			BT::Print(SockError.str().c_str());
-		}
-	}
 }

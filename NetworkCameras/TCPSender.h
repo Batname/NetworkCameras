@@ -39,6 +39,12 @@ namespace BT
 		struct addrinfo	hints;
 		WSADATA wsaData;
 		SOCKET ConnectSocket = INVALID_SOCKET;
+
+		bool bIsConnected;
+
+		void Connect();
+		void ReleaseSocket();
+		void Run();
 	};
 }
 
