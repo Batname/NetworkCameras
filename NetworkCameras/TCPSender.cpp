@@ -103,7 +103,7 @@ void BT::TCPSender::Broadcast(const char * Data, unsigned int Len)
 	{
 		{
 			std::ostringstream Log;
-			Log << "convertedImage.GetDataSize: " << Len << " Data[100]: " << (int)Data[100];
+			Log << "convertedImage.GetDataSize: " << Len << " Data[100]: 0x" << std::hex << (int)Data[100];
 			BT::Print(Log.str().c_str());
 		}
 	}
@@ -123,8 +123,6 @@ void BT::TCPSender::Connect()
 			<< " Server: " << Server << " Port " << Port;
 			BT::Print(SockError.str().c_str());
 		}
-
-		//app->ErrorExit(EXIT_FAILURE);
 	}
 	BT::Print("Initialised.");
 
@@ -143,8 +141,6 @@ void BT::TCPSender::Connect()
 			<< " Server: " << Server << " Port " << Port;
 			BT::Print(SockError.str().c_str());
 		}
-
-		//app->ErrorExit(EXIT_FAILURE);
 	}
 
 	// Attempt to connect to an address until one succeeds
@@ -160,8 +156,6 @@ void BT::TCPSender::Connect()
 				<< " Server: " << Server << " Port " << Port;
 				BT::Print(SockError.str().c_str());
 			}
-
-			//app->ErrorExit(EXIT_FAILURE);
 		}
 
 		// Connect to server.
