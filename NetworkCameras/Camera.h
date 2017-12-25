@@ -14,15 +14,13 @@ namespace BT
 	class Camera
 	{
 	public:
-		Camera(int CamId, unsigned int CameraPort);
+		Camera(std::string CamServer, std::string CamPort);
 		virtual ~Camera();
 
 	public:
 		virtual int Run();
 		virtual int End();
 	private:
-		int CamId;
-
 		const FlyCapture2::Mode k_fmt7Mode;
 		const FlyCapture2::PixelFormat k_fmt7PixFmt;
 		FlyCapture2::Format7Info fmt7Info;
@@ -32,7 +30,9 @@ namespace BT
 
 		bool bIsFormatSupported;
 		bool bIsFormatSettingsValid;
-		unsigned int CameraPort;
+		std::string CamPort;
+		std::string CamServer;
+
 		unsigned int BytesPerColor;
 
 		// access to the app
@@ -61,6 +61,7 @@ namespace BT
 	// UDP server communication
 	protected:
 		TCPSender* tcpSender;
+		std::thread tcpSenderThread;
 
 		std::mutex mtx;
 	};

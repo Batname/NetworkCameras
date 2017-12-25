@@ -20,6 +20,13 @@ BT::TCPSender::TCPSender(std::string Server, std::string Port)
 	// access to app
 	app = BT::App::GetApp();
 
+	{
+		std::ostringstream Log;
+		Log << "Run camera TCP sender: Server: " << Server
+		<< " Port: " << Port;
+		BT::Print(Log.str().c_str());
+	}
+
 	Run();
 }
 
@@ -44,7 +51,7 @@ void BT::TCPSender::Run()
 			closesocket(ConnectSocket);
 			WSACleanup();
 
-			Sleep(1000);
+			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 			Connect();
 		}
 		else
@@ -86,7 +93,7 @@ void BT::TCPSender::Broadcast(const char * Data, unsigned int Len)
 
 			// reconnect now
 			ReleaseSocket();
-			Sleep(1000);
+			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 			Run();
 		}
 	}

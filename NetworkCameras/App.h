@@ -55,6 +55,12 @@ namespace BT
 
 		BT::Camera* Camera1;
 		BT::Camera* Camera2;
+
+		std::string Cam1Port = "8889";
+		std::string Cam2Port = "8890";
+		std::string CamsServer = "127.0.0.1";
+
+
 	};
 }
 

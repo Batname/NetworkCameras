@@ -14,9 +14,9 @@ using namespace std;
 
 extern mutex MainMutex;
 
-BT::Camera::Camera(int CamId, unsigned int CameraPort)
-	: CamId(CamId)
-	, CameraPort(CameraPort)
+BT::Camera::Camera(std::string CamServer, std::string CamPort)
+	: CamServer(CamServer)
+	, CamPort(CamPort)
 	, k_fmt7Mode(MODE_0)
 	, k_fmt7PixFmt(PIXEL_FORMAT_RGB8)
 	, BytesPerColor(4)
@@ -110,8 +110,11 @@ BT::Camera::Camera(int CamId, unsigned int CameraPort)
 	}
 
 
-	// Init Udp server
-	tcpSender = new TCPSender("127.0.0.1", "8889");
+	// Init Udp server thread
+	tcpSenderThread = std::thread([=]
+	{
+		tcpSender = new TCPSender(CamServer, CamPort);
+	});
 }
 
 BT::Camera::~Camera()
@@ -119,6 +122,7 @@ BT::Camera::~Camera()
 	End();
 
 	// release udp data
+	tcpSenderThread.join();
 	delete tcpSender;
 	tcpSender = nullptr;
 }
@@ -218,7 +222,7 @@ int BT::Camera::Tick(double Delta)
 
 	std::stringstream Log;
 	Log
-		<< "BT::Camera::Tick " << "Id: " << CamId << " Delta:" << Delta
+		<< "BT::Camera::Tick " << " Delta:" << Delta
 		<< " convertedImage DataSize in bytes: " << convertedImage.GetDataSize()
 		<< " Data[100] example: 0x" << std::hex << (int)DataExample;
 	//BT::Print(Log.str().c_str());

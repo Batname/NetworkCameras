@@ -3,6 +3,8 @@
 #include <winsock2.h>
 #include <Ws2tcpip.h>
 #include <iostream>
+#include <chrono>
+#include <mutex>
 
 
 // Implement this examples
@@ -41,6 +43,8 @@ namespace BT
 		SOCKET ConnectSocket = INVALID_SOCKET;
 
 		bool bIsConnected;
+
+		std::mutex mtx;
 
 		void Connect();
 		void ReleaseSocket();
