@@ -4,13 +4,19 @@
 
 #include "App.h"
 
-// Need to link with Ws2_32.lib, Mswsock.lib, and Advapi32.lib
-#pragma comment (lib, "Ws2_32.lib")
-#pragma comment (lib, "Mswsock.lib")
-#pragma comment (lib, "AdvApi32.lib")
+#ifdef __linux__ 
 
-#pragma warning( disable : 4996)
+#elif _WIN32
+	// Need to link with Ws2_32.lib, Mswsock.lib, and Advapi32.lib
+	#pragma comment (lib, "Ws2_32.lib")
+	#pragma comment (lib, "Mswsock.lib")
+	#pragma comment (lib, "AdvApi32.lib")
+	
+	#pragma warning( disable : 4996)
+#else
+#endif
 
+#define BUFSIZE 64
 
 BT::TCPSender::TCPSender(std::string Server, std::string Port)
 	: Server(Server)
@@ -27,10 +33,122 @@ BT::TCPSender::TCPSender(std::string Server, std::string Port)
 		BT::Print(Log.str().c_str());
 	}
 
+	Buffer = new char[1264896];
+
 	Run();
 }
 
+BT::TCPSender::~TCPSender()
+{
+	// release socket
+	ReleaseSocket();
 
+	delete[] Buffer;
+	Buffer = nullptr;
+}
+
+#ifdef __linux__
+void BT::TCPSender::Run()
+{
+	Connect();
+}
+
+
+
+void BT::TCPSender::Broadcast(const char * Data, unsigned int Len)
+{
+	if (!bIsConnected)
+	{
+		return;
+	}
+
+	mtx.lock();
+	memcpy ( Buffer, Data, Len );
+	mtx.unlock();
+
+	/* send the message line to the server */
+    int n = write(sockfd, Buffer, Len);
+    if (n < 0)
+    {
+      	BT::Print("ERROR writing to socket");
+    }
+    else
+    {
+    	{
+    		std::ostringstream Log;
+    		Log << "convertedImage.GetDataSize: " << Len << " Data[100]: 0x" << std::hex << (int)Data[100];
+    		BT::Print(Log.str().c_str());
+    	}
+    }
+
+
+    // wait for server answer
+    char buf[BUFSIZE];
+    n = read(sockfd, buf, BUFSIZE);
+    if (n < 0) 
+    {
+     	BT::Print("ERROR reading from socket");
+     	ReleaseSocket();
+     	Connect();
+    }
+
+}
+
+void BT::TCPSender::Connect()
+{
+	/* socket: create the socket */
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0)
+    {
+        BT::Print("ERROR opening socket");
+    }
+    else
+    {
+    	BT::Print("Socket created");
+    }
+
+    /* gethostbyname: get the server's DNS entry */
+    server = gethostbyname(Server.c_str());
+    if (server == NULL)
+    {
+        {
+			std::ostringstream SockError;
+			SockError << "ERROR, no such host as : " << Server.c_str();
+			BT::Print(SockError.str().c_str());
+		}
+    }
+    else
+    {
+    	BT::Print("Host exists");
+    }
+
+
+    /* build the server's Internet address */
+    bzero((char *) &serveraddr, sizeof(serveraddr));
+    serveraddr.sin_family = AF_INET;
+    bcopy((char *)server->h_addr, 
+	  (char *)&serveraddr.sin_addr.s_addr, server->h_length);
+    serveraddr.sin_port = htons(std::stoi(Port));
+
+     /* connect: create a connection with the server */
+    if (connect(sockfd,(struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0)
+    {
+    	BT::Print("Error socket connection");
+    }
+    else
+    {
+    	BT::Print("Socket connection success");
+    	bIsConnected = true;
+    }
+}
+
+void BT::TCPSender::ReleaseSocket()
+{
+	bIsConnected = false;
+	close(sockfd);
+}
+
+#elif _WIN32
 void BT::TCPSender::Run()
 {
 	Connect();
@@ -65,12 +183,6 @@ void BT::TCPSender::Run()
 
 
 	BT::Print("Socket created");
-}
-
-BT::TCPSender::~TCPSender()
-{
-	// release socket
-	ReleaseSocket();
 }
 
 void BT::TCPSender::Broadcast(const char * Data, unsigned int Len)
@@ -177,3 +289,4 @@ void BT::TCPSender::ReleaseSocket()
 	closesocket(ConnectSocket);
 	WSACleanup();
 }
+#endif

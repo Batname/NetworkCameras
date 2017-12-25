@@ -192,7 +192,7 @@ int BT::Camera::CaptureFrame()
 		PrintError(error);
 	}
 
-	// Get the raw image dimensions
+	//Get the raw image dimensions
 	PixelFormat pixFormat;
 	unsigned int rows, cols, stride;
 	rawImage.GetDimensions(&rows, &cols, &stride, &pixFormat);

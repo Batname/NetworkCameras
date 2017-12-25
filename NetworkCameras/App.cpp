@@ -1,13 +1,10 @@
 #include "App.h"
 #include "Camera.h"
 
-
 // Standart libs
 #include <stdio.h>
 #include <sstream>
 #include <iostream>
-
-#include <Windows.h>
 
 std::mutex BT::App::MainMutex;
 BT::App* BT::App::GlobalApp = nullptr;
@@ -77,7 +74,7 @@ BT::App::App(bool bIsDebug)
 	}
 
 	// Exit if less than 2 cameras
-	if (numCameras < 2)
+	if (numCameras < 1)
 	{
 		BT::Print("Insufficient number of cameras... exiting");
 		ErrorExit(-1);
@@ -122,6 +119,4 @@ void BT::App::Release()
 	{
 		delete Cam;
 	}
-
-	//CamerasThread.join();
 }

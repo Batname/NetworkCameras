@@ -240,3 +240,10 @@ ModelManifest.xml
 
 # FAKE - F# Make
 .fake/
+
+
+# Ignoere linux CMAKE
+CMakeCache.txt
+CMakeFiles/*
+Makefile
+cmake_install.cmake
