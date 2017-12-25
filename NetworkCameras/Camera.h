@@ -5,6 +5,7 @@
 #include <mutex>
 #include <thread>
 #include <chrono>
+#include <future>
 
 namespace BT
 {
@@ -14,18 +15,22 @@ namespace BT
 	class Camera
 	{
 	public:
-		Camera(std::string CamServer, std::string CamPort);
-		virtual ~Camera();
+		Camera(unsigned int CamIndex, std::string CamServer, std::string CamPort);
+		~Camera();
 
 	public:
-		virtual int Run();
-		virtual int End();
+		virtual int CaptureFrame();
+		virtual int Disconnect();
 	private:
+		FlyCapture2::Camera pCamera;
 		const FlyCapture2::Mode k_fmt7Mode;
 		const FlyCapture2::PixelFormat k_fmt7PixFmt;
 		FlyCapture2::Format7Info fmt7Info;
 		FlyCapture2::Format7ImageSettings fmt7ImageSettings;
 		FlyCapture2::Format7PacketInfo fmt7PacketInfo;
+		FlyCapture2::PGRGuid CamGuid;
+		FlyCapture2::BusManager busMgr;
+		unsigned int CamIndex;
 
 
 		bool bIsFormatSupported;
@@ -54,7 +59,6 @@ namespace BT
 	protected:
 		FlyCapture2::Error error;
 		FlyCapture2::CameraInfo camInfo;
-		FlyCapture2::Camera Cam;
 
 		virtual int Tick(double Delta);
 
@@ -62,7 +66,8 @@ namespace BT
 	protected:
 		TCPSender* tcpSender;
 		std::thread tcpSenderThread;
+		std::atomic_bool bIsTCPThreadRunning;
 
-		std::mutex mtx;
+		//std::mutex mtx;
 	};
 }

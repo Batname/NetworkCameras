@@ -2,8 +2,7 @@
 
 
 #include <mutex>
-#include <thread>
-#include <chrono>
+#include <vector>
 
 #include "FlyCapture2.h"
 
@@ -50,16 +49,12 @@ namespace BT
 
 	// Camera threads
 	private:
-		std::thread Cam1Tread;
-		std::thread Cam2Tread;
+		//std::thread CamerasThread;
 
-		BT::Camera* Camera1;
-		BT::Camera* Camera2;
 
-		std::string Cam1Port = "8889";
-		std::string Cam2Port = "8890";
+		std::vector<BT::Camera*> Cameras;
+		std::vector<std::string> CamPorts = { "8889", "8890" };
 		std::string CamsServer = "127.0.0.1";
-
 
 	};
 }

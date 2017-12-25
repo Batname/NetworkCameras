@@ -40,7 +40,8 @@ void BT::TCPSender::Run()
 		if (ConnectSocket == INVALID_SOCKET) {
 			{
 				std::ostringstream SockError;
-				SockError << "Unable to connect to server! " << WSAGetLastError();
+				SockError << "Unable to connect to server! " << WSAGetLastError()
+				<< " Server: " << Server << " Port " << Port;
 				BT::Print(SockError.str().c_str());
 			}
 
@@ -83,7 +84,8 @@ void BT::TCPSender::Broadcast(const char * Data, unsigned int Len)
 	if (iResult == SOCKET_ERROR) {
 		{
 			std::ostringstream SockError;
-			SockError << "send failed with error: " << WSAGetLastError();
+			SockError << "send failed with error: " << WSAGetLastError()
+			<< " Server: " << Server << " Port " << Port;
 			BT::Print(SockError.str().c_str());
 		}
 
@@ -117,11 +119,12 @@ void BT::TCPSender::Connect()
 	{
 		{
 			std::ostringstream SockError;
-			SockError << "WSAStartup failed with error : " << WSAGetLastError();
+			SockError << "WSAStartup failed with error : " << WSAGetLastError()
+			<< " Server: " << Server << " Port " << Port;
 			BT::Print(SockError.str().c_str());
 		}
 
-		app->ErrorExit(EXIT_FAILURE);
+		//app->ErrorExit(EXIT_FAILURE);
 	}
 	BT::Print("Initialised.");
 
@@ -136,11 +139,12 @@ void BT::TCPSender::Connect()
 
 		{
 			std::ostringstream SockError;
-			SockError << "getaddrinfo failed with error : " << WSAGetLastError();
+			SockError << "getaddrinfo failed with error : " << WSAGetLastError()
+			<< " Server: " << Server << " Port " << Port;
 			BT::Print(SockError.str().c_str());
 		}
 
-		app->ErrorExit(EXIT_FAILURE);
+		//app->ErrorExit(EXIT_FAILURE);
 	}
 
 	// Attempt to connect to an address until one succeeds
@@ -152,11 +156,12 @@ void BT::TCPSender::Connect()
 		if (ConnectSocket == INVALID_SOCKET) {
 			{
 				std::ostringstream SockError;
-				SockError << "socket failed with errorr : " << WSAGetLastError();
+				SockError << "socket failed with errorr : " << WSAGetLastError()
+				<< " Server: " << Server << " Port " << Port;
 				BT::Print(SockError.str().c_str());
 			}
 
-			app->ErrorExit(EXIT_FAILURE);
+			//app->ErrorExit(EXIT_FAILURE);
 		}
 
 		// Connect to server.

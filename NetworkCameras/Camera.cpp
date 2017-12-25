@@ -12,19 +12,27 @@
 
 using namespace std;
 
-extern mutex MainMutex;
-
-BT::Camera::Camera(std::string CamServer, std::string CamPort)
-	: CamServer(CamServer)
+BT::Camera::Camera(unsigned int CamIndex, std::string CamServer, std::string CamPort)
+	: CamIndex(CamIndex)
+	, CamServer(CamServer)
 	, CamPort(CamPort)
 	, k_fmt7Mode(MODE_0)
 	, k_fmt7PixFmt(PIXEL_FORMAT_RGB8)
 	, BytesPerColor(4)
+	, bIsTCPThreadRunning(false)
 {
 	app = BT::App::GetApp();
 
+	// Get camera guit
+	error = busMgr.GetCameraFromIndex(CamIndex, &CamGuid);
+	if (error != PGRERROR_OK)
+	{
+		PrintError(error);
+		app->ErrorExit(-1);
+	}
+
 	// Connect to a camera
-	error = Cam.Connect(&app->guid);
+	error = pCamera.Connect(&CamGuid);
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
@@ -32,7 +40,7 @@ BT::Camera::Camera(std::string CamServer, std::string CamPort)
 	}
 
 	// Get the camera information
-	error = Cam.GetCameraInfo(&camInfo);
+	error = pCamera.GetCameraInfo(&camInfo);
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
@@ -44,10 +52,31 @@ BT::Camera::Camera(std::string CamServer, std::string CamPort)
 		PrintCameraInfo(&camInfo);
 	}
 
+
+	// Turn trigger mode off
+	FlyCapture2::TriggerMode trigMode;
+	trigMode.onOff = false;
+	error = pCamera.SetTriggerMode(&trigMode);
+	if (error != PGRERROR_OK)
+	{
+		PrintError(error);
+		app->ErrorExit(-1);
+	}
+
+	// Turn Timestamp on
+	FlyCapture2::EmbeddedImageInfo imageInfo;
+	imageInfo.timestamp.onOff = true;
+	error = pCamera.SetEmbeddedImageInfo(&imageInfo);
+	if (error != PGRERROR_OK)
+	{
+		PrintError(error);
+		app->ErrorExit(-1);
+	}
+
 	// Query for available Format 7 modes
 	Format7Info fmt7Info;
 	fmt7Info.mode = k_fmt7Mode;
-	error = Cam.GetFormat7Info(&fmt7Info, &bIsFormatSupported);
+	error = pCamera.GetFormat7Info(&fmt7Info, &bIsFormatSupported);
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
@@ -75,7 +104,7 @@ BT::Camera::Camera(std::string CamServer, std::string CamPort)
 	fmt7ImageSettings.pixelFormat = k_fmt7PixFmt;
 
 	// Validate the settings to make sure that they are valid
-	error = Cam.ValidateFormat7Settings(
+	error = pCamera.ValidateFormat7Settings(
 		&fmt7ImageSettings, &bIsFormatSettingsValid, &fmt7PacketInfo);
 	if (error != PGRERROR_OK)
 	{
@@ -92,7 +121,7 @@ BT::Camera::Camera(std::string CamServer, std::string CamPort)
 	}
 
 	// Set the settings to the camera
-	error = Cam.SetFormat7Configuration(
+	error = pCamera.SetFormat7Configuration(
 		&fmt7ImageSettings, fmt7PacketInfo.recommendedBytesPerPacket);
 	if (error != PGRERROR_OK)
 	{
@@ -102,35 +131,15 @@ BT::Camera::Camera(std::string CamServer, std::string CamPort)
 
 	// Retrieve frame rate property
 	frmRate.type = FRAME_RATE;
-	error = Cam.GetProperty(&frmRate);
+	error = pCamera.GetProperty(&frmRate);
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
 		app->ErrorExit(-1);
 	}
 
-
-	// Init Udp server thread
-	tcpSenderThread = std::thread([=]
-	{
-		tcpSender = new TCPSender(CamServer, CamPort);
-	});
-}
-
-BT::Camera::~Camera()
-{
-	End();
-
-	// release udp data
-	tcpSenderThread.join();
-	delete tcpSender;
-	tcpSender = nullptr;
-}
-
-int BT::Camera::Run()
-{
 	// Start capturing images
-	error = Cam.StartCapture();
+	error = pCamera.StartCapture();
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
@@ -141,44 +150,63 @@ int BT::Camera::Run()
 	// Print framerate
 	{
 		ostringstream FrameRate;
-		FrameRate 
-		<< "Frame rate is " << fixed << std::setprecision(2) << frmRate.absValue << " fps" << endl;
+		FrameRate
+			<< "Frame rate is " << fixed << std::setprecision(2) << frmRate.absValue << " fps" << endl;
 
 		BT::Print(FrameRate.str().c_str());
 	}
 
-	while (true)
+
+	// Init Udp server thread
+	tcpSenderThread = std::thread([=]
 	{
-		clock_t StartTime = clock();
-		double Duration;
+		bIsTCPThreadRunning = true;
+		tcpSender = new TCPSender(CamServer, CamPort);
+	});
+}
 
-		// Retrieve an image
-		error = Cam.RetrieveBuffer(&rawImage);
-		if (error != PGRERROR_OK)
-		{
-			PrintError(error);
-			continue;
-		}
+BT::Camera::~Camera()
+{
+	Disconnect();
 
-		// Get the raw image dimensions
-		PixelFormat pixFormat;
-		unsigned int rows, cols, stride;
-		rawImage.GetDimensions(&rows, &cols, &stride, &pixFormat);
+	// release udp data
+	if (bIsTCPThreadRunning)
+	{
+		bIsTCPThreadRunning = false;
 
-		// Convert the raw image
-		error = rawImage.Convert(PIXEL_FORMAT_BGRU, &convertedImage);
-		if (error != PGRERROR_OK)
-		{
-			PrintError(error);
-			continue;
-		}
-
-		Duration = (clock() - StartTime) / (double)CLOCKS_PER_SEC;
-
-		// if we need more delay
-		//this_thread::sleep_for(chrono::milliseconds(200));
-		Tick(Duration);
+		tcpSenderThread.join();
+		delete tcpSender;
+		tcpSender = nullptr;
 	}
+}
+
+int BT::Camera::CaptureFrame()
+{
+	clock_t StartTime = clock();
+	double Duration;
+
+	// Retrieve an image
+	error = pCamera.RetrieveBuffer(&rawImage);
+	if (error != PGRERROR_OK)
+	{
+		PrintError(error);
+	}
+
+	// Get the raw image dimensions
+	PixelFormat pixFormat;
+	unsigned int rows, cols, stride;
+	rawImage.GetDimensions(&rows, &cols, &stride, &pixFormat);
+
+	// Convert the raw image
+	error = rawImage.Convert(PIXEL_FORMAT_BGRU, &convertedImage);
+	if (error != PGRERROR_OK)
+	{
+		PrintError(error);
+	}
+
+	Duration = (clock() - StartTime) / (double)CLOCKS_PER_SEC;
+
+	Tick(Duration);
 
 	return 1;
 }
@@ -219,11 +247,11 @@ int BT::Camera::Tick(double Delta)
 {
 	unsigned char DataExample = convertedImage.GetData()[100];
 
-
 	std::stringstream Log;
 	Log
 		<< "BT::Camera::Tick " << " Delta:" << Delta
 		<< " convertedImage DataSize in bytes: " << convertedImage.GetDataSize()
+		<< " Server: " << CamServer << " Port " << CamPort
 		<< " Data[100] example: 0x" << std::hex << (int)DataExample;
 	//BT::Print(Log.str().c_str());
 
@@ -236,10 +264,10 @@ int BT::Camera::Tick(double Delta)
 	return 0;
 }
 
-int BT::Camera::End()
+int BT::Camera::Disconnect()
 {
 	// Stop capturing images
-	error = Cam.StopCapture();
+	error = pCamera.StopCapture();
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
@@ -247,11 +275,11 @@ int BT::Camera::End()
 	}
 
 	// Disconnect the camera
-	error = Cam.Disconnect();
+	error = pCamera.Disconnect();
 	if (error != PGRERROR_OK)
 	{
 		PrintError(error);
-		return -1;
+		app->ErrorExit(-1);
 	}
 
 	return 0;

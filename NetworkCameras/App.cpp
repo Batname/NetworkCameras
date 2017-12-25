@@ -7,6 +7,8 @@
 #include <sstream>
 #include <iostream>
 
+#include <Windows.h>
+
 std::mutex BT::App::MainMutex;
 BT::App* BT::App::GlobalApp = nullptr;
 
@@ -75,16 +77,9 @@ BT::App::App(bool bIsDebug)
 	}
 
 	// Exit if less than 2 cameras
-	if (numCameras < 1)
+	if (numCameras < 2)
 	{
 		BT::Print("Insufficient number of cameras... exiting");
-		ErrorExit(-1);
-	}
-
-	error = busMgr.GetCameraFromIndex(0, &guid);
-	if (error != PGRERROR_OK)
-	{
-		PrintError(error);
 		ErrorExit(-1);
 	}
 }
@@ -92,22 +87,24 @@ BT::App::App(bool bIsDebug)
 BT::App::~App()
 {
 	Release();
+
 }
 
 void BT::App::Run()
 {
-	// Run camera threads
-	Cam1Tread = thread([&]
+	for (unsigned int i = 0; i < numCameras; i++)
 	{
-		Camera1 = new BT::Camera(CamsServer, Cam1Port);
-		Camera1->Run();
-	});
+		Cameras.push_back(new BT::Camera(i, CamsServer, CamPorts[i]));
+	}
 
-	Cam2Tread = thread([&]
+	// Run camera threads
+	while (true)
 	{
-		//Camera2 = new BT::Camera(2);
-		//Camera2->Run();
-	});
+		for (auto Cam : Cameras)
+		{
+			Cam->CaptureFrame();
+		}
+	}
 }
 
 void BT::App::ErrorExit(int Code)
@@ -121,11 +118,10 @@ void BT::App::ErrorExit(int Code)
 
 void BT::App::Release()
 {
-	// Clear memory
-	delete Camera1;
-	delete Camera2;
+	for (auto Cam : Cameras)
+	{
+		delete Cam;
+	}
 
-	// Exit threads
-	Cam1Tread.join();
-	Cam2Tread.join();
+	//CamerasThread.join();
 }
