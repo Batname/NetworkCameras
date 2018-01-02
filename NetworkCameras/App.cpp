@@ -74,7 +74,7 @@ BT::App::App(bool bIsDebug)
 	}
 
 	// Exit if less than 2 cameras
-	if (numCameras < 1)
+	if (numCameras < 2)
 	{
 		BT::Print("Insufficient number of cameras... exiting");
 		ErrorExit(-1);

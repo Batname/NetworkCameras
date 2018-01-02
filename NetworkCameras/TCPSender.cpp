@@ -213,9 +213,13 @@ void BT::TCPSender::Broadcast(const char * Data, unsigned int Len)
 	}
 	else
 	{
+		char buf[BUFSIZE];
+		iResult = recv(ConnectSocket, buf, BUFSIZE, 0);
+
+
 		{
 			std::ostringstream Log;
-			Log << "convertedImage.GetDataSize: " << Len << " Data[100]: 0x" << std::hex << (int)Data[100];
+			Log << "Port: " << Port  << " convertedImage.GetDataSize: " << Len << " Data[100]: 0x" << std::hex << (int)Data[100];
 			BT::Print(Log.str().c_str());
 		}
 	}

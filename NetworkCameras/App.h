@@ -52,8 +52,8 @@ namespace BT
 
 		std::vector<BT::Camera*> Cameras;
 		std::vector<std::string> CamPorts = { "8889", "8890" };
-		//std::string CamsServer = "127.0.0.1";
-		std::string CamsServer = "192.168.137.1";
+		std::string CamsServer = "127.0.0.1";
+		//std::string CamsServer = "192.168.137.1";
 
 
 	};
